@@ -124,3 +124,29 @@ async function gracefulShutdown(signal) {
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+
+process.on('exit', (code) => {
+  console.log(`Node.js process is exiting with code: ${code}`);
+});
+
+
+app.get('/test-process', (req, res) => {
+  const code = Number(req.query.code);
+
+  if (code !== 0 && code !== 1) {
+    return res.status(400).json({
+      error: 'Use ?code=0 or ?code=1'
+    });
+  }
+
+  res.json({
+    message: 'Process exit test initiated',
+    exitCode: code
+  });
+
+  setTimeout(() => {
+    process.exitCode = code;
+    process.kill(process.pid, 'SIGTERM');
+  }, 500);
+});
