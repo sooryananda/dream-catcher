@@ -87,17 +87,17 @@ try {
 }
 
 
+
 async function gracefulShutdown(signal) {
   if (isShuttingDown) return;
-  isShuttingDown = true;
 
+  isShuttingDown = true;
   console.log(`${signal} received, shutting down gracefully`);
 
-  // Stop accepting new HTTP requests
   if (server) {
     server.close(async (error) => {
       if (error) {
-        console.error('Error closing HTTP server:', error);
+        console.error('HTTP server shutdown failed:', error);
         process.exitCode = 1;
       } else {
         console.log('HTTP server closed');
@@ -107,7 +107,7 @@ async function gracefulShutdown(signal) {
         await pool.end();
         console.log('Database pool closed');
       } catch (dbError) {
-        console.error('Error closing database pool:', dbError);
+        console.error('Database pool shutdown failed:', dbError);
         process.exitCode = 1;
       }
     });
@@ -116,7 +116,7 @@ async function gracefulShutdown(signal) {
       await pool.end();
       console.log('Database pool closed');
     } catch (error) {
-      console.error('Error closing database pool:', error);
+      console.error('Database pool shutdown failed:', error);
       process.exitCode = 1;
     }
   }
@@ -125,28 +125,6 @@ async function gracefulShutdown(signal) {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-
 process.on('exit', (code) => {
   console.log(`Node.js process is exiting with code: ${code}`);
-});
-
-
-app.get('/test-process', (req, res) => {
-  const code = Number(req.query.code);
-
-  if (code !== 0 && code !== 1) {
-    return res.status(400).json({
-      error: 'Use ?code=0 or ?code=1'
-    });
-  }
-
-  res.json({
-    message: 'Process exit test initiated',
-    exitCode: code
-  });
-
-  setTimeout(() => {
-    process.exitCode = code;
-    process.kill(process.pid, 'SIGTERM');
-  }, 500);
 });
