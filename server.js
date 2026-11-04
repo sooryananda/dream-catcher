@@ -53,6 +53,27 @@ app.get('/health', async (req, res) => {
   }
 });
 
+// Process exit code demonstration endpoint
+app.get('/test-process', (req, res) => {
+  const code = Number(req.query.code);
+
+  if (code !== 0 && code !== 1) {
+    return res.status(400).json({
+      error: 'Use ?code=0 or ?code=1'
+    });
+  }
+
+  res.json({
+    message: 'Process exit test initiated',
+    exitCode: code
+  });
+
+  setTimeout(() => {
+    process.exitCode = code;
+    process.kill(process.pid, 'SIGTERM');
+  }, 500);
+});
+
 app.get('/shutdown', (req, res) => {
   console.log('=== MANUAL SHUTDOWN TRIGGERED ===');
   res.send('Shutting down...');
@@ -67,9 +88,6 @@ app.get('/shutdown', (req, res) => {
 // API Routes
 app.use('/api/dreams', dreamsRouter);
 
-process.on('SIGINT', ()=> {
-  console.log('Starting graceful shutdown')
-})
 
 let server
 let isShuttingDown = false;
@@ -85,6 +103,8 @@ try {
   console.error('Failed to initialize database:', error);
   process.exit(1);
 }
+
+
 
 
 
@@ -122,9 +142,11 @@ async function gracefulShutdown(signal) {
   }
 }
 
+// Handle termination signals
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
+// Handle process exit
 process.on('exit', (code) => {
   console.log(`Node.js process is exiting with code: ${code}`);
 });
